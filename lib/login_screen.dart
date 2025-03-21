@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'auth_service.dart';
 import 'register_screen.dart';
+import 'theme_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -51,6 +53,10 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     if (success) {
+      // Reload theme for the newly logged in user
+      final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+      await themeProvider.loadTheme();
+      
       // Login successful
       // Use pushNamedAndRemoveUntil to clear the navigation stack
       Navigator.pushNamedAndRemoveUntil(
@@ -72,11 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.blue.shade300, Colors.deepPurple],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+          gradient: Provider.of<ThemeProvider>(context).getGradientForTheme(),
         ),
         child: Center(
           child: SingleChildScrollView(
@@ -105,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: TextField(
                     controller: _usernameController,
                     decoration: InputDecoration(
-                      hintText: 'Username',
+                      hintText: 'Username (Case Sensitive)',
                       prefixIcon: Icon(Icons.person, color: Colors.deepPurple),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(vertical: 15),

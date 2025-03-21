@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'login_screen.dart';
 import 'auth_service.dart';
 import 'register_screen.dart';
+import 'theme_provider.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => ThemeProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -12,12 +19,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    
     return MaterialApp(
       title: 'GymBuddy',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.black),
-        useMaterial3: true,
-      ),
+      theme: themeProvider.getThemeData(),
       initialRoute: '/', // Start with the login screen
       routes: {
         '/': (context) => const LoginScreen(),
@@ -94,11 +100,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
 
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.blue.shade300, Colors.deepPurple],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+          gradient: Provider.of<ThemeProvider>(context).getGradientForTheme(),
         ),
         child: Align(
           alignment: Alignment.center,
@@ -319,11 +321,7 @@ class _ScreenOneState extends State<ScreenOne> {
       appBar: AppBar(title: Text('Input Data')),
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.blue.shade300, Colors.deepPurple],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+          gradient: Provider.of<ThemeProvider>(context).getGradientForTheme(),
         ),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -478,14 +476,14 @@ class ScreenTwo extends StatelessWidget {
             color: Colors.deepPurple,
           ),
         ),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.deepPurple),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.blue.shade300, Colors.deepPurple],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+          gradient: Provider.of<ThemeProvider>(context).getGradientForTheme(),
         ),
         child: exercises.isEmpty
             ? Center(
@@ -589,14 +587,14 @@ class _ScreenThreeState extends State<ScreenThree> {
             color: Colors.deepPurple,
           ),
         ),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.deepPurple),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.blue.shade300, Colors.deepPurple],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+          gradient: Provider.of<ThemeProvider>(context).getGradientForTheme(),
         ),
         child: workoutHistory.isEmpty
             ? Center(
@@ -688,14 +686,14 @@ class _ScreenFourState extends State<ScreenFour> {
             color: Colors.deepPurple,
           ),
         ),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.deepPurple),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.blue.shade300, Colors.deepPurple],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+          gradient: Provider.of<ThemeProvider>(context).getGradientForTheme(),
         ),
         child: Padding(
           padding: const EdgeInsets.all(20.0),
@@ -864,15 +862,17 @@ class _ScreenFourState extends State<ScreenFour> {
                         title: Text('App Theme'),
                         trailing: Icon(Icons.arrow_forward_ios, size: 16),
                         onTap: () {
-                          // Theme settings
+                          // Show theme selection dialog
+                          _showThemeSelector(context);
                         },
                       ),
                       Divider(),
                       ListTile(
-                        title: Text('Notifications'),
-                        trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                        title: Text('Reset Password'),
+                        trailing: Icon(Icons.lock_reset, size: 16),
                         onTap: () {
-                          // Notification settings
+                          // Show password reset dialog
+                          _showResetPasswordDialog(context);
                         },
                       ),
                       Divider(),
@@ -917,6 +917,234 @@ class _ScreenFourState extends State<ScreenFour> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showThemeSelector(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final currentTheme = themeProvider.currentTheme;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Select Theme'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildThemeOption(context, 'Default', 'default', currentTheme),
+              _buildThemeOption(context, 'Purple', 'purple', currentTheme),
+              _buildThemeOption(context, 'Green', 'green', currentTheme),
+              _buildThemeOption(context, 'Blue', 'blue', currentTheme),
+              _buildThemeOption(context, 'Red', 'red', currentTheme),
+              _buildThemeOption(context, 'Yellow', 'yellow', currentTheme),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildThemeOption(BuildContext context, String themeName, String themeKey, String currentTheme) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    
+    return ListTile(
+      title: Text(themeName),
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: _getPreviewGradient(themeKey),
+          border: Border.all(
+            color: themeKey == currentTheme ? Colors.black : Colors.transparent,
+            width: 2,
+          ),
+        ),
+      ),
+      trailing: themeKey == currentTheme ? Icon(Icons.check, color: Colors.green) : null,
+      onTap: () async {
+        await themeProvider.setTheme(themeKey);
+        Navigator.pop(context);
+        
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Theme updated successfully!'))
+        );
+      },
+    );
+  }
+  
+  LinearGradient _getPreviewGradient(String themeKey) {
+    switch (themeKey) {
+      case 'purple':
+        return LinearGradient(
+          colors: [Colors.purple.shade300, Colors.deepPurple],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+      case 'green':
+        return LinearGradient(
+          colors: [Colors.green.shade300, Colors.teal],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+      case 'blue':
+        return LinearGradient(
+          colors: [Colors.blue.shade300, Colors.indigo],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+      case 'red':
+        return LinearGradient(
+          colors: [Colors.red.shade300, Colors.deepOrange],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+      case 'yellow':
+        return LinearGradient(
+          colors: [Colors.amber.shade300, Colors.orange],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+      case 'default':
+      default:
+        return LinearGradient(
+          colors: [Colors.blue.shade300, Colors.deepPurple],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+    }
+  }
+  
+  void _showResetPasswordDialog(BuildContext context) {
+    final TextEditingController currentPasswordController = TextEditingController();
+    final TextEditingController newPasswordController = TextEditingController();
+    final TextEditingController confirmPasswordController = TextEditingController();
+    bool isLoading = false;
+    String errorMessage = '';
+    
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text('Reset Password'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Current Password
+                    TextField(
+                      controller: currentPasswordController,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: 'Current Password',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    
+                    // New Password
+                    TextField(
+                      controller: newPasswordController,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: 'New Password',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    
+                    // Confirm New Password
+                    TextField(
+                      controller: confirmPasswordController,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: 'Confirm New Password',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    
+                    // Error message
+                    if (errorMessage.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 16.0),
+                        child: Text(
+                          errorMessage,
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Cancel'),
+                ),
+                if (isLoading)
+                  CircularProgressIndicator()
+                else
+                  TextButton(
+                    onPressed: () async {
+                      // Validate passwords
+                      if (currentPasswordController.text.isEmpty ||
+                          newPasswordController.text.isEmpty ||
+                          confirmPasswordController.text.isEmpty) {
+                        setState(() {
+                          errorMessage = 'All fields are required';
+                        });
+                        return;
+                      }
+                      
+                      if (newPasswordController.text != confirmPasswordController.text) {
+                        setState(() {
+                          errorMessage = 'New passwords do not match';
+                        });
+                        return;
+                      }
+                      
+                      // Show loading indicator
+                      setState(() {
+                        isLoading = true;
+                        errorMessage = '';
+                      });
+                      
+                      // Update password
+                      final success = await _authService.updatePassword(
+                        currentPasswordController.text,
+                        newPasswordController.text,
+                      );
+                      
+                      if (success) {
+                        // Close dialog and show success message
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Password updated successfully'))
+                        );
+                      } else {
+                        // Show error
+                        setState(() {
+                          isLoading = false;
+                          errorMessage = 'Current password is incorrect';
+                        });
+                      }
+                    },
+                    child: Text('Update'),
+                  ),
+              ],
+            );
+          }
+        );
+      },
     );
   }
 }

@@ -4,6 +4,7 @@ class AuthService {
   static const String _isLoggedInKey = 'isLoggedIn';
   static const String _usernameKey = 'username';
   static const String _userCredentialsKey = 'user_credentials';
+  static const String _themeKey = 'user_theme';
 
   // Mock validation - in a real app, you would connect to a backend
   Future<bool> login(String username, String password) async {
@@ -174,5 +175,100 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_userCredentialsKey);
     print('All credentials cleared');
+  }
+
+  // Theme methods
+  Future<void> saveTheme(String theme) async {
+    final prefs = await SharedPreferences.getInstance();
+    final username = await getUsername();
+    if (username == null) return;
+    
+    await prefs.setString('${_themeKey}_$username', theme);
+    print('Saved theme "$theme" for user $username');
+  }
+
+  Future<String> getTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    final username = await getUsername();
+    if (username == null) return 'default';
+    
+    final theme = prefs.getString('${_themeKey}_$username');
+    print('Retrieved theme "$theme" for user $username');
+    return theme ?? 'default';
+  }
+  
+  // Update password for the current user
+  Future<bool> updatePassword(String currentPassword, String newPassword) async {
+    final prefs = await SharedPreferences.getInstance();
+    final username = await getUsername();
+    if (username == null) return false;
+    
+    print('Updating password for user: $username');
+    
+    // Verify current password first
+    bool passwordVerified = false;
+    
+    // Special case for Alex
+    if (username == 'Alex' && currentPassword == 'password') {
+      passwordVerified = true;
+    } else {
+      // Get credentials list
+      final userCredentials = prefs.getStringList(_userCredentialsKey) ?? [];
+      
+      // Find and verify current password
+      for (String credential in userCredentials) {
+        final parts = credential.split(':');
+        if (parts.length == 2 && parts[0] == username && parts[1] == currentPassword) {
+          passwordVerified = true;
+          break;
+        }
+      }
+    }
+    
+    if (!passwordVerified) {
+      print('Password update failed: Current password is incorrect');
+      return false;
+    }
+    
+    // Update password in credentials list
+    final userCredentials = prefs.getStringList(_userCredentialsKey) ?? [];
+    List<String> updatedCredentials = [];
+    bool updated = false;
+    
+    // Special case for Alex
+    if (username == 'Alex') {
+      // Add a new credential with the new password
+      updatedCredentials.addAll(userCredentials);
+      updatedCredentials.add('$username:$newPassword');
+      await prefs.setStringList(_userCredentialsKey, updatedCredentials);
+      print('Updated password for Alex');
+      return true;
+    }
+    
+    // Update password for regular users
+    for (String credential in userCredentials) {
+      final parts = credential.split(':');
+      if (parts.length == 2) {
+        if (parts[0] == username) {
+          // Found the username, update its password
+          updatedCredentials.add('$username:$newPassword');
+          updated = true;
+        } else {
+          // Keep other credentials unchanged
+          updatedCredentials.add(credential);
+        }
+      }
+    }
+    
+    // Save the updated credentials list
+    if (updated) {
+      await prefs.setStringList(_userCredentialsKey, updatedCredentials);
+      print('Password updated successfully for user: $username');
+      return true;
+    } else {
+      // This should not happen if passwordVerified is true, but just in case
+      print('Password update failed: Username not found in credentials');
+      return false;
+    }
   }
 } 

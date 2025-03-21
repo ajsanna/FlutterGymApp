@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
 import 'auth_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'register_screen.dart';
 
 void main() {
@@ -38,13 +37,33 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   String _username = 'User';
   final AuthService _authService = AuthService();
 
   @override
   void initState() {
     super.initState();
+    _loadUsername();
+    WidgetsBinding.instance.addObserver(this);
+  }
+  
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+  
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadUsername();
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     _loadUsername();
   }
 
@@ -189,11 +208,14 @@ class _MyHomePageState extends State<MyHomePage> {
               SizedBox(
                 width: 320,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
+                  onPressed: () async {
+                    // Navigate to profile screen and refresh username when returning
+                    await Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => ScreenFour()),
                     );
+                    // Reload username when returning from profile
+                    _loadUsername();
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
@@ -763,18 +785,21 @@ class _ScreenFourState extends State<ScreenFour> {
                         title: Text('Edit Username'),
                         trailing: Icon(Icons.arrow_forward_ios, size: 16),
                         onTap: () {
+                          // Create a text controller with current username
+                          final TextEditingController editController = 
+                              TextEditingController(text: _username);
+                          
                           // Show dialog to edit username
                           showDialog(
                             context: context,
                             builder: (context) => AlertDialog(
                               title: Text('Edit Username'),
                               content: TextField(
-                                onChanged: (value) {
-                                  _username = value;
-                                },
+                                controller: editController,
                                 decoration: InputDecoration(
                                   hintText: 'Enter new username',
                                 ),
+                                autofocus: true,
                               ),
                               actions: [
                                 TextButton(
@@ -783,10 +808,49 @@ class _ScreenFourState extends State<ScreenFour> {
                                 ),
                                 TextButton(
                                   onPressed: () async {
-                                    // Save the new username to SharedPreferences using AuthService
-                                    await _authService.updateUsername(_username);
-                                    setState(() {});
+                                    final newUsername = editController.text.trim();
+                                    
+                                    // Check if username is not empty
+                                    if (newUsername.isEmpty) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Username cannot be empty'))
+                                      );
+                                      return;
+                                    }
+                                    
+                                    // Check if username is the same
+                                    if (newUsername == _username) {
+                                      Navigator.pop(context);
+                                      return;
+                                    }
+                                    
+                                    // Check if username already exists (for new registrations)
+                                    if (newUsername != 'Alex' && await _authService.usernameExists(newUsername)) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Username already exists'))
+                                      );
+                                      return;
+                                    }
+                                    
+                                    // Save the new username
+                                    await _authService.updateUsername(newUsername);
+                                    
+                                    // For debugging, print all credentials
+                                    final credentials = await _authService.getAllCredentials();
+                                    print('Current credentials: $credentials');
+                                    
+                                    // Update the state with new username
+                                    setState(() {
+                                      _username = newUsername;
+                                    });
+                                    
+                                    // Close dialog
                                     Navigator.pop(context);
+                                    
+                                    // Show success message
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Username updated successfully! You will need to login with this new username next time.'))
+                                    );
                                   },
                                   child: Text('Save'),
                                 ),

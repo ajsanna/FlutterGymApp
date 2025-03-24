@@ -13,6 +13,9 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+    // Print a message to confirm Firebase is initialized
+  print('Firebase Initialized Successfully');
+  
   runApp(
     ChangeNotifierProvider(
       create: (context) => ThemeProvider(),

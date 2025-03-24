@@ -10,11 +10,15 @@ import 'theme_provider.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-    // Print a message to confirm Firebase is initialized
-  print('Firebase Initialized Successfully');
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print('Firebase Initialized Successfully');
+  } catch (e) {
+    print('Firebase Initialization Error: $e');
+    print('Error details: ${e.toString()}');
+  }
   
   runApp(
     ChangeNotifierProvider(
@@ -842,10 +846,6 @@ class _ScreenFourState extends State<ScreenFour> {
                                     
                                     // Save the new username
                                     await _authService.updateUsername(newUsername);
-                                    
-                                    // For debugging, print all credentials
-                                    final credentials = await _authService.getAllCredentials();
-                                    print('Current credentials: $credentials');
                                     
                                     // Update the state with new username
                                     setState(() {

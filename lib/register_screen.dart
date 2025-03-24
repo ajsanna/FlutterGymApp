@@ -22,7 +22,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
     // Basic validation
     if (_usernameController.text.isEmpty) {
       setState(() {
-        _errorMessage = 'Username cannot be empty';
+        _errorMessage = 'Email cannot be empty';
+      });
+      return;
+    }
+
+    // Email format validation
+    if (!_usernameController.text.contains('@') || !_usernameController.text.contains('.')) {
+      setState(() {
+        _errorMessage = 'Please enter a valid email address';
       });
       return;
     }
@@ -47,6 +55,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
+      print('Starting registration process...'); // Debug log
       // Register the user with AuthService
       final success = await _authService.register(
         _usernameController.text,
@@ -54,19 +63,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
       if (success) {
+        print('Registration successful'); // Debug log
         // Registration successful
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Registration successful! Please log in.')),
         );
         Navigator.pop(context); // Return to login screen
       } else {
+        print('Registration failed'); // Debug log
         // Registration failed
         setState(() {
-          _errorMessage = 'Username already exists';
+          _errorMessage = 'Registration failed. Please try a different email.';
           _isLoading = false;
         });
       }
     } catch (e) {
+      print('Registration error in screen: $e'); // Debug log
       setState(() {
         _errorMessage = 'Registration failed: $e';
         _isLoading = false;
@@ -96,19 +108,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo or App Title
                 Text(
                   'Create Account',
                   style: TextStyle(
-                    fontSize: 36,
+                    fontSize: 32,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                     fontFamily: 'Poppins',
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 30),
                 
-                // Username Field
+                // Email Field
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.8),
@@ -116,9 +127,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   child: TextField(
                     controller: _usernameController,
+                    keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
-                      hintText: 'Username',
-                      prefixIcon: Icon(Icons.person, color: Colors.deepPurple),
+                      hintText: 'Email Address',
+                      prefixIcon: Icon(Icons.email, color: Colors.deepPurple),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(vertical: 15),
                     ),

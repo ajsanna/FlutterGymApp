@@ -98,7 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 50),
                 
-                // Username Field
+                // Email Field
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.8),
@@ -106,9 +106,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   child: TextField(
                     controller: _usernameController,
+                    keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
-                      hintText: 'Username (Case Sensitive)',
-                      prefixIcon: Icon(Icons.person, color: Colors.deepPurple),
+                      hintText: 'Email Address',
+                      prefixIcon: Icon(Icons.email, color: Colors.deepPurple),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(vertical: 15),
                     ),

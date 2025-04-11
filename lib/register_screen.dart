@@ -11,24 +11,34 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
   bool _isLoading = false;
   String _errorMessage = '';
   final AuthService _authService = AuthService();
 
   void _register() async {
     // Basic validation
-    if (_usernameController.text.isEmpty) {
+    if (_emailController.text.isEmpty) {
       setState(() {
         _errorMessage = 'Email cannot be empty';
       });
       return;
     }
 
+    if (_usernameController.text.isEmpty) {
+      setState(() {
+        _errorMessage = 'Username cannot be empty';
+      });
+      return;
+    }
+
     // Email format validation
-    if (!_usernameController.text.contains('@') || !_usernameController.text.contains('.')) {
+    if (!_emailController.text.contains('@') ||
+        !_emailController.text.contains('.')) {
       setState(() {
         _errorMessage = 'Please enter a valid email address';
       });
@@ -58,11 +68,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
       print('Starting registration process...'); // Debug log
       // Register the user with AuthService
       final success = await _authService.register(
-        _usernameController.text,
+        _emailController.text,
         _passwordController.text,
       );
 
       if (success) {
+        // Store the username locally
+        await _authService.updateUsername(_usernameController.text);
+
         print('Registration successful'); // Debug log
         // Registration successful
         ScaffoldMessenger.of(context).showSnackBar(
@@ -118,8 +131,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
                 const SizedBox(height: 30),
-                
-                // Email Field
+
+                // Username Field
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.8),
@@ -127,6 +140,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   child: TextField(
                     controller: _usernameController,
+                    decoration: InputDecoration(
+                      hintText: 'Username',
+                      prefixIcon: Icon(Icons.person, color: Colors.deepPurple),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(vertical: 15),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Email Field
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: TextField(
+                    controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
                       hintText: 'Email Address',
@@ -137,7 +168,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Password Field
                 Container(
                   decoration: BoxDecoration(
@@ -156,7 +187,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Confirm Password Field
                 Container(
                   decoration: BoxDecoration(
@@ -168,14 +199,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     obscureText: true,
                     decoration: InputDecoration(
                       hintText: 'Confirm Password',
-                      prefixIcon: Icon(Icons.lock_outline, color: Colors.deepPurple),
+                      prefixIcon:
+                          Icon(Icons.lock_outline, color: Colors.deepPurple),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(vertical: 15),
                     ),
                   ),
                 ),
                 const SizedBox(height: 24),
-                
+
                 // Error Message
                 if (_errorMessage.isNotEmpty)
                   Padding(
@@ -188,30 +220,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                   ),
-                
+
                 // Register Button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _register,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.deepPurple,
+                      backgroundColor: Colors.deepPurple,
+                      foregroundColor: Colors.white,
                       padding: EdgeInsets.symmetric(vertical: 15),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      elevation: 5,
-                      disabledBackgroundColor: Colors.grey.shade300,
                     ),
                     child: _isLoading
-                        ? CircularProgressIndicator(color: Colors.deepPurple)
+                        ? CircularProgressIndicator(color: Colors.white)
                         : Text(
                             'Register',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: TextStyle(fontSize: 18),
                           ),
                   ),
                 ),
@@ -222,4 +249,4 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
     );
   }
-} 
+}

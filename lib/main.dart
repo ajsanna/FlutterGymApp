@@ -6,10 +6,13 @@ import 'login_screen.dart';
 import 'auth_service.dart';
 import 'register_screen.dart';
 import 'theme_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'workout_model.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -19,7 +22,7 @@ Future<void> main() async {
     print('Firebase Initialization Error: $e');
     print('Error details: ${e.toString()}');
   }
-  
+
   runApp(
     ChangeNotifierProvider(
       create: (context) => ThemeProvider(),
@@ -34,7 +37,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
-    
+
     return MaterialApp(
       title: 'GymBuddy',
       theme: themeProvider.getThemeData(),
@@ -67,13 +70,13 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
     _loadUsername();
     WidgetsBinding.instance.addObserver(this);
   }
-  
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
-  
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -111,7 +114,6 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
           ),
         ),
       ),
-
       body: Container(
         decoration: BoxDecoration(
           gradient: Provider.of<ThemeProvider>(context).getGradientForTheme(),
@@ -196,7 +198,8 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: Text('Browse Workouts', style: TextStyle(fontSize: 32)),
+                  child:
+                      Text('Browse Workouts', style: TextStyle(fontSize: 32)),
                 ),
               ),
 
@@ -257,8 +260,6 @@ class ScreenOne extends StatefulWidget {
 }
 
 class _ScreenOneState extends State<ScreenOne> {
-
-
   final TextEditingController nameController = TextEditingController();
   final TextEditingController muscleGroupController = TextEditingController();
   final TextEditingController repsController = TextEditingController();
@@ -270,46 +271,81 @@ class _ScreenOneState extends State<ScreenOne> {
     super.initState();
   }
 
-  // Save the workout data (mock implementation)
+  // Save the workout data
   Future<void> _saveWorkout(BuildContext context) async {
-    // Show the success dialog
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: Colors.blue.shade200,
-          title: Text(
-            'Entry Added',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: Text(
-            'Your workout entry has been saved!',
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();  // Close the dialog
-                Navigator.pop(context);       // Go back to the previous screen
-              },
-              child: Text(
-                'OK',
-                style: TextStyle(
-                  color: Colors.deepPurple,
-                  fontWeight: FontWeight.bold,
-                ),
+    try {
+      // Get the current workouts
+      final prefs = await SharedPreferences.getInstance();
+      final workoutsJson = prefs.getStringList('workouts') ?? [];
+
+      // Create new workout
+      final workout = Workout(
+        name: nameController.text,
+        muscleGroup: muscleGroupController.text,
+        reps: int.parse(repsController.text),
+        sets: int.parse(setsController.text),
+        date: dateController.text,
+      );
+
+      // Convert workout to properly formatted JSON string
+      final workoutJson = jsonEncode({
+        'name': workout.name,
+        'muscleGroup': workout.muscleGroup,
+        'reps': workout.reps,
+        'sets': workout.sets,
+        'date': workout.date,
+      });
+
+      // Add new workout to the list
+      workoutsJson.add(workoutJson);
+
+      // Save the updated list
+      await prefs.setStringList('workouts', workoutsJson);
+
+      // Show success dialog
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            backgroundColor: Colors.blue.shade200,
+            title: Text(
+              'Entry Added',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
               ),
             ),
-          ],
-        );
-      },
-    );
+            content: Text(
+              'Your workout entry has been saved!',
+              style: TextStyle(
+                color: Colors.white,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Close the dialog
+                  Navigator.pop(context); // Go back to the previous screen
+                },
+                child: Text(
+                  'OK',
+                  style: TextStyle(
+                    color: Colors.deepPurple,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    } catch (e) {
+      print('Error saving workout: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error saving workout: $e')),
+      );
+    }
   }
 
   // Open the date picker to select the date
@@ -442,38 +478,141 @@ class _ScreenOneState extends State<ScreenOne> {
   }
 }
 
-
-
 class ScreenTwo extends StatelessWidget {
   // Sample data for exercises
   final List<Map<String, String>> exercises = [
     {'name': 'Push Ups', 'muscle_group': 'Chest', 'sets': '3', 'reps': '12-15'},
     {'name': 'Squats', 'muscle_group': 'Legs', 'sets': '4', 'reps': '15-20'},
     {'name': 'Pull Ups', 'muscle_group': 'Back', 'sets': '3', 'reps': '8-12'},
-    {'name': 'Bicep Curls', 'muscle_group': 'Arms', 'sets': '4', 'reps': '10-12'},
-    {'name': 'Deadlifts', 'muscle_group': 'Full Body', 'sets': '3', 'reps': '8-10'},
-    {'name': 'Bench Press', 'muscle_group': 'Chest', 'sets': '4', 'reps': '8-12'},
-    {'name': 'Lunges', 'muscle_group': 'Legs', 'sets': '3', 'reps': '10-12 (each leg)'},
-    {'name': 'Overhead Press', 'muscle_group': 'Shoulders', 'sets': '4', 'reps': '8-10'},
-    {'name': 'Tricep Dips', 'muscle_group': 'Arms', 'sets': '3', 'reps': '10-15'},
+    {
+      'name': 'Bicep Curls',
+      'muscle_group': 'Arms',
+      'sets': '4',
+      'reps': '10-12'
+    },
+    {
+      'name': 'Deadlifts',
+      'muscle_group': 'Full Body',
+      'sets': '3',
+      'reps': '8-10'
+    },
+    {
+      'name': 'Bench Press',
+      'muscle_group': 'Chest',
+      'sets': '4',
+      'reps': '8-12'
+    },
+    {
+      'name': 'Lunges',
+      'muscle_group': 'Legs',
+      'sets': '3',
+      'reps': '10-12 (each leg)'
+    },
+    {
+      'name': 'Overhead Press',
+      'muscle_group': 'Shoulders',
+      'sets': '4',
+      'reps': '8-10'
+    },
+    {
+      'name': 'Tricep Dips',
+      'muscle_group': 'Arms',
+      'sets': '3',
+      'reps': '10-15'
+    },
     {'name': 'Leg Press', 'muscle_group': 'Legs', 'sets': '4', 'reps': '12-15'},
-    {'name': 'Lat Pulldown', 'muscle_group': 'Back', 'sets': '3', 'reps': '8-12'},
-    {'name': 'Chest Fly', 'muscle_group': 'Chest', 'sets': '3', 'reps': '12-15'},
-    {'name': 'Romanian Deadlifts', 'muscle_group': 'Hamstrings', 'sets': '4', 'reps': '8-12'},
-    {'name': 'Plank', 'muscle_group': 'Core', 'sets': '3', 'reps': 'Hold for 30-60 seconds'},
-    {'name': 'Russian Twists', 'muscle_group': 'Core', 'sets': '3', 'reps': '20-30 twists'},
-    {'name': 'Barbell Rows', 'muscle_group': 'Back', 'sets': '4', 'reps': '8-10'},
+    {
+      'name': 'Lat Pulldown',
+      'muscle_group': 'Back',
+      'sets': '3',
+      'reps': '8-12'
+    },
+    {
+      'name': 'Chest Fly',
+      'muscle_group': 'Chest',
+      'sets': '3',
+      'reps': '12-15'
+    },
+    {
+      'name': 'Romanian Deadlifts',
+      'muscle_group': 'Hamstrings',
+      'sets': '4',
+      'reps': '8-12'
+    },
+    {
+      'name': 'Plank',
+      'muscle_group': 'Core',
+      'sets': '3',
+      'reps': 'Hold for 30-60 seconds'
+    },
+    {
+      'name': 'Russian Twists',
+      'muscle_group': 'Core',
+      'sets': '3',
+      'reps': '20-30 twists'
+    },
+    {
+      'name': 'Barbell Rows',
+      'muscle_group': 'Back',
+      'sets': '4',
+      'reps': '8-10'
+    },
     {'name': 'Leg Curls', 'muscle_group': 'Legs', 'sets': '3', 'reps': '12-15'},
-    {'name': 'Shoulder Lateral Raise', 'muscle_group': 'Shoulders', 'sets': '3', 'reps': '10-15'},
-    {'name': 'Hammer Curls', 'muscle_group': 'Arms', 'sets': '3', 'reps': '10-12'},
-    {'name': 'Goblet Squats', 'muscle_group': 'Legs', 'sets': '4', 'reps': '12-15'},
-    {'name': 'Mountain Climbers', 'muscle_group': 'Core', 'sets': '3', 'reps': '30-40 per side'},
-    {'name': 'Kettlebell Swings', 'muscle_group': 'Full Body', 'sets': '4', 'reps': '12-20'},
-    {'name': 'Burpees', 'muscle_group': 'Full Body', 'sets': '3', 'reps': '10-15'},
-    {'name': 'Chest Press Machine', 'muscle_group': 'Chest', 'sets': '4', 'reps': '8-12'},
+    {
+      'name': 'Shoulder Lateral Raise',
+      'muscle_group': 'Shoulders',
+      'sets': '3',
+      'reps': '10-15'
+    },
+    {
+      'name': 'Hammer Curls',
+      'muscle_group': 'Arms',
+      'sets': '3',
+      'reps': '10-12'
+    },
+    {
+      'name': 'Goblet Squats',
+      'muscle_group': 'Legs',
+      'sets': '4',
+      'reps': '12-15'
+    },
+    {
+      'name': 'Mountain Climbers',
+      'muscle_group': 'Core',
+      'sets': '3',
+      'reps': '30-40 per side'
+    },
+    {
+      'name': 'Kettlebell Swings',
+      'muscle_group': 'Full Body',
+      'sets': '4',
+      'reps': '12-20'
+    },
+    {
+      'name': 'Burpees',
+      'muscle_group': 'Full Body',
+      'sets': '3',
+      'reps': '10-15'
+    },
+    {
+      'name': 'Chest Press Machine',
+      'muscle_group': 'Chest',
+      'sets': '4',
+      'reps': '8-12'
+    },
     {'name': 'Seated Row', 'muscle_group': 'Back', 'sets': '4', 'reps': '8-12'},
-    {'name': 'Hip Thrusts', 'muscle_group': 'Glutes', 'sets': '4', 'reps': '10-12'},
-    {'name': 'Face Pulls', 'muscle_group': 'Shoulders', 'sets': '3', 'reps': '12-15'}
+    {
+      'name': 'Hip Thrusts',
+      'muscle_group': 'Glutes',
+      'sets': '4',
+      'reps': '10-12'
+    },
+    {
+      'name': 'Face Pulls',
+      'muscle_group': 'Shoulders',
+      'sets': '3',
+      'reps': '12-15'
+    }
   ];
 
   @override
@@ -516,7 +655,8 @@ class ScreenTwo extends StatelessWidget {
                     child: ListTile(
                       title: Text(
                         exercise['name']!,
-                        style: TextStyle(color: Colors.deepPurple, fontSize: 18),
+                        style:
+                            TextStyle(color: Colors.deepPurple, fontSize: 18),
                       ),
                       subtitle: Text(
                         'Muscle Group: ${exercise['muscle_group']}',
@@ -542,49 +682,94 @@ class ScreenThree extends StatefulWidget {
   @override
   _ScreenThreeState createState() => _ScreenThreeState();
 }
+
 class _ScreenThreeState extends State<ScreenThree> {
-  // Mock workout history data
-  final List<Map<String, dynamic>> workoutHistory = [
-    {
-      'id': '1',
-      'name': 'Morning Chest Workout',
-      'muscle_group': 'Chest',
-      'sets': 4,
-      'reps': 12,
-      'date': '2024-03-15'
-    },
-    {
-      'id': '2',
-      'name': 'Leg Day',
-      'muscle_group': 'Legs',
-      'sets': 5,
-      'reps': 15,
-      'date': '2024-03-17'
-    },
-    {
-      'id': '3',
-      'name': 'Back & Biceps',
-      'muscle_group': 'Back',
-      'sets': 4,
-      'reps': 10,
-      'date': '2024-03-18'
-    },
-  ];
+  List<Workout> workoutHistory = [];
 
   @override
   void initState() {
     super.initState();
+    _loadWorkouts();
   }
 
-  // Delete a workout (mock implementation)
-  void _deleteWorkout(String id) {
-    setState(() {
-      workoutHistory.removeWhere((workout) => workout['id'] == id);
-    });
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Workout deleted successfully')),
-    );
+  Future<void> _loadWorkouts() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final workoutsJson = prefs.getStringList('workouts') ?? [];
+      final List<Workout> loadedWorkouts = [];
+
+      for (var json in workoutsJson) {
+        try {
+          // Clean up the JSON string if it's not properly formatted
+          if (!json.startsWith('{') || !json.endsWith('}')) {
+            json = json.trim();
+            if (!json.startsWith('{')) json = '{' + json;
+            if (!json.endsWith('}')) json = json + '}';
+          }
+
+          final Map<String, dynamic> workoutMap = jsonDecode(json);
+          loadedWorkouts.add(Workout(
+            name: workoutMap['name'] as String,
+            muscleGroup: workoutMap['muscleGroup'] as String,
+            reps: workoutMap['reps'] as int,
+            sets: workoutMap['sets'] as int,
+            date: workoutMap['date'] as String,
+          ));
+        } catch (e) {
+          print('Error parsing workout: $e\nJSON: $json');
+          // Skip invalid entries
+          continue;
+        }
+      }
+
+      setState(() {
+        workoutHistory = loadedWorkouts;
+      });
+    } catch (e) {
+      print('Error loading workouts: $e');
+    }
+  }
+
+  // Delete a workout
+  Future<void> _deleteWorkout(int index) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final workoutsJson = prefs.getStringList('workouts') ?? [];
+
+      if (index >= 0 && index < workoutsJson.length) {
+        workoutsJson.removeAt(index);
+        await prefs.setStringList('workouts', workoutsJson);
+        await _loadWorkouts(); // Reload the workouts
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Workout deleted successfully')),
+        );
+      }
+    } catch (e) {
+      print('Error deleting workout: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting workout: $e')),
+      );
+    }
+  }
+
+  // Add this new method to clear workout history
+  Future<void> _clearWorkoutHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('workouts');
+      setState(() {
+        workoutHistory = [];
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Workout history cleared successfully')),
+      );
+    } catch (e) {
+      print('Error clearing workout history: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error clearing workout history: $e')),
+      );
+    }
   }
 
   @override
@@ -605,6 +790,34 @@ class _ScreenThreeState extends State<ScreenThree> {
           icon: Icon(Icons.arrow_back, color: Colors.deepPurple),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.delete_sweep, color: Colors.red),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text('Clear History'),
+                  content: Text(
+                      'Are you sure you want to clear all workout history?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _clearWorkoutHistory();
+                      },
+                      child: Text('Clear', style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -621,34 +834,34 @@ class _ScreenThreeState extends State<ScreenThree> {
                 itemCount: workoutHistory.length,
                 itemBuilder: (context, index) {
                   final workout = workoutHistory[index];
-                  
+
                   return Card(
                     margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                     color: Colors.white,
                     child: ListTile(
                       title: Text(
-                        workout['name'] ?? 'No Name',
+                        workout.name,
                         style: TextStyle(
                           color: Colors.deepPurple,
                           fontSize: 18,
                         ),
                       ),
                       subtitle: Text(
-                        'Muscle Group: ${workout['muscle_group'] ?? 'Not specified'}',
+                        'Muscle Group: ${workout.muscleGroup}',
                         style: TextStyle(color: Colors.blue),
                       ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Sets: ${workout['sets'] ?? 0} Reps: ${workout['reps'] ?? 0}',
+                            'Sets: ${workout.sets} Reps: ${workout.reps}',
                             style: TextStyle(color: Colors.black87),
                           ),
                           SizedBox(width: 8),
                           IconButton(
                             icon: Icon(Icons.delete),
                             onPressed: () {
-                              _deleteWorkout(workout['id']);
+                              _deleteWorkout(index);
                             },
                           ),
                         ],
@@ -745,7 +958,8 @@ class _ScreenFourState extends State<ScreenFour> {
                             ),
                             child: CircleAvatar(
                               radius: 35,
-                              backgroundImage: AssetImage('assets/IMG_6510.png'),
+                              backgroundImage:
+                                  AssetImage('assets/IMG_6510.png'),
                             ),
                           ),
                           SizedBox(width: 20),
@@ -775,7 +989,6 @@ class _ScreenFourState extends State<ScreenFour> {
                   ),
                 ),
               ),
-              
               Card(
                 color: Colors.white,
                 margin: EdgeInsets.only(bottom: 20),
@@ -798,9 +1011,9 @@ class _ScreenFourState extends State<ScreenFour> {
                         trailing: Icon(Icons.arrow_forward_ios, size: 16),
                         onTap: () {
                           // Create a text controller with current username
-                          final TextEditingController editController = 
+                          final TextEditingController editController =
                               TextEditingController(text: _username);
-                          
+
                           // Show dialog to edit username
                           showDialog(
                             context: context,
@@ -820,45 +1033,41 @@ class _ScreenFourState extends State<ScreenFour> {
                                 ),
                                 TextButton(
                                   onPressed: () async {
-                                    final newUsername = editController.text.trim();
-                                    
+                                    final newUsername =
+                                        editController.text.trim();
+
                                     // Check if username is not empty
                                     if (newUsername.isEmpty) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('Username cannot be empty'))
-                                      );
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(SnackBar(
+                                              content: Text(
+                                                  'Username cannot be empty')));
                                       return;
                                     }
-                                    
+
                                     // Check if username is the same
                                     if (newUsername == _username) {
                                       Navigator.pop(context);
                                       return;
                                     }
-                                    
-                                    // Check if username already exists (for new registrations)
-                                    if (newUsername != 'Alex' && await _authService.usernameExists(newUsername)) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('Username already exists'))
-                                      );
-                                      return;
-                                    }
-                                    
+
                                     // Save the new username
-                                    await _authService.updateUsername(newUsername);
-                                    
+                                    await _authService
+                                        .updateUsername(newUsername);
+
                                     // Update the state with new username
                                     setState(() {
                                       _username = newUsername;
                                     });
-                                    
+
                                     // Close dialog
                                     Navigator.pop(context);
-                                    
+
                                     // Show success message
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Username updated successfully! You will need to login with this new username next time.'))
-                                    );
+                                        SnackBar(
+                                            content: Text(
+                                                'Username updated successfully!')));
                                   },
                                   child: Text('Save'),
                                 ),
@@ -907,12 +1116,14 @@ class _ScreenFourState extends State<ScreenFour> {
                                     Navigator.pop(context); // Close dialog
                                     // Use pushNamedAndRemoveUntil to clear the navigation stack
                                     Navigator.pushNamedAndRemoveUntil(
-                                      context, 
-                                      '/', 
-                                      (route) => false, // This removes all previous routes
+                                      context,
+                                      '/',
+                                      (route) =>
+                                          false, // This removes all previous routes
                                     );
                                   },
-                                  child: Text('Logout', style: TextStyle(color: Colors.red)),
+                                  child: Text('Logout',
+                                      style: TextStyle(color: Colors.red)),
                                 ),
                               ],
                             ),
@@ -933,7 +1144,7 @@ class _ScreenFourState extends State<ScreenFour> {
   void _showThemeSelector(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     final currentTheme = themeProvider.currentTheme;
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -960,10 +1171,11 @@ class _ScreenFourState extends State<ScreenFour> {
       ),
     );
   }
-  
-  Widget _buildThemeOption(BuildContext context, String themeName, String themeKey, String currentTheme) {
+
+  Widget _buildThemeOption(BuildContext context, String themeName,
+      String themeKey, String currentTheme) {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-    
+
     return ListTile(
       title: Text(themeName),
       leading: Container(
@@ -978,19 +1190,20 @@ class _ScreenFourState extends State<ScreenFour> {
           ),
         ),
       ),
-      trailing: themeKey == currentTheme ? Icon(Icons.check, color: Colors.green) : null,
+      trailing: themeKey == currentTheme
+          ? Icon(Icons.check, color: Colors.green)
+          : null,
       onTap: () async {
         await themeProvider.setTheme(themeKey);
         Navigator.pop(context);
-        
+
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Theme updated successfully!'))
-        );
+            SnackBar(content: Text('Theme updated successfully!')));
       },
     );
   }
-  
+
   LinearGradient _getPreviewGradient(String themeKey) {
     switch (themeKey) {
       case 'purple':
@@ -1032,128 +1245,128 @@ class _ScreenFourState extends State<ScreenFour> {
         );
     }
   }
-  
+
   void _showResetPasswordDialog(BuildContext context) {
-    final TextEditingController currentPasswordController = TextEditingController();
+    final TextEditingController currentPasswordController =
+        TextEditingController();
     final TextEditingController newPasswordController = TextEditingController();
-    final TextEditingController confirmPasswordController = TextEditingController();
+    final TextEditingController confirmPasswordController =
+        TextEditingController();
     bool isLoading = false;
     String errorMessage = '';
-    
+
     showDialog(
       context: context,
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: Text('Reset Password'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Current Password
-                    TextField(
-                      controller: currentPasswordController,
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        labelText: 'Current Password',
-                        border: OutlineInputBorder(),
-                      ),
+        return StatefulBuilder(builder: (context, setState) {
+          return AlertDialog(
+            title: Text('Reset Password'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Current Password
+                  TextField(
+                    controller: currentPasswordController,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      labelText: 'Current Password',
+                      border: OutlineInputBorder(),
                     ),
-                    SizedBox(height: 16),
-                    
-                    // New Password
-                    TextField(
-                      controller: newPasswordController,
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        labelText: 'New Password',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    SizedBox(height: 16),
-                    
-                    // Confirm New Password
-                    TextField(
-                      controller: confirmPasswordController,
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        labelText: 'Confirm New Password',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    
-                    // Error message
-                    if (errorMessage.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 16.0),
-                        child: Text(
-                          errorMessage,
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Cancel'),
-                ),
-                if (isLoading)
-                  CircularProgressIndicator()
-                else
-                  TextButton(
-                    onPressed: () async {
-                      // Validate passwords
-                      if (currentPasswordController.text.isEmpty ||
-                          newPasswordController.text.isEmpty ||
-                          confirmPasswordController.text.isEmpty) {
-                        setState(() {
-                          errorMessage = 'All fields are required';
-                        });
-                        return;
-                      }
-                      
-                      if (newPasswordController.text != confirmPasswordController.text) {
-                        setState(() {
-                          errorMessage = 'New passwords do not match';
-                        });
-                        return;
-                      }
-                      
-                      // Show loading indicator
-                      setState(() {
-                        isLoading = true;
-                        errorMessage = '';
-                      });
-                      
-                      // Update password
-                      final success = await _authService.updatePassword(
-                        currentPasswordController.text,
-                        newPasswordController.text,
-                      );
-                      
-                      if (success) {
-                        // Close dialog and show success message
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Password updated successfully'))
-                        );
-                      } else {
-                        // Show error
-                        setState(() {
-                          isLoading = false;
-                          errorMessage = 'Current password is incorrect';
-                        });
-                      }
-                    },
-                    child: Text('Update'),
                   ),
-              ],
-            );
-          }
-        );
+                  SizedBox(height: 16),
+
+                  // New Password
+                  TextField(
+                    controller: newPasswordController,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      labelText: 'New Password',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+
+                  // Confirm New Password
+                  TextField(
+                    controller: confirmPasswordController,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      labelText: 'Confirm New Password',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+
+                  // Error message
+                  if (errorMessage.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16.0),
+                      child: Text(
+                        errorMessage,
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('Cancel'),
+              ),
+              if (isLoading)
+                CircularProgressIndicator()
+              else
+                TextButton(
+                  onPressed: () async {
+                    // Validate passwords
+                    if (currentPasswordController.text.isEmpty ||
+                        newPasswordController.text.isEmpty ||
+                        confirmPasswordController.text.isEmpty) {
+                      setState(() {
+                        errorMessage = 'All fields are required';
+                      });
+                      return;
+                    }
+
+                    if (newPasswordController.text !=
+                        confirmPasswordController.text) {
+                      setState(() {
+                        errorMessage = 'New passwords do not match';
+                      });
+                      return;
+                    }
+
+                    // Show loading indicator
+                    setState(() {
+                      isLoading = true;
+                      errorMessage = '';
+                    });
+
+                    // Update password
+                    final success = await _authService.updatePassword(
+                      currentPasswordController.text,
+                      newPasswordController.text,
+                    );
+
+                    if (success) {
+                      // Close dialog and show success message
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text('Password updated successfully')));
+                    } else {
+                      // Show error
+                      setState(() {
+                        isLoading = false;
+                        errorMessage = 'Current password is incorrect';
+                      });
+                    }
+                  },
+                  child: Text('Update'),
+                ),
+            ],
+          );
+        });
       },
     );
   }

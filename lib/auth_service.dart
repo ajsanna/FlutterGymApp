@@ -11,16 +11,16 @@ class AuthService {
   Future<bool> login(String email, String password) async {
     try {
       // Sign in with Firebase using actual email
-      final UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+      final UserCredential userCredential =
+          await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
 
       if (userCredential.user != null) {
-        // Store login state and username (using email as username)
+        // Store login state
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool(_isLoggedInKey, true);
-        await prefs.setString(_usernameKey, email);
         return true;
       }
       return false;
@@ -34,16 +34,16 @@ class AuthService {
   Future<bool> register(String email, String password) async {
     try {
       // Create user with Firebase using actual email
-      final UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+      final UserCredential userCredential =
+          await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
       if (userCredential.user != null) {
-        // Store login state and username (using email as username)
+        // Store login state
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool(_isLoggedInKey, true);
-        await prefs.setString(_usernameKey, email);
         return true;
       }
       return false;
@@ -83,7 +83,7 @@ class AuthService {
     }
   }
 
-  // Get current username (email)
+  // Get current username
   Future<String?> getUsername() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -94,51 +94,42 @@ class AuthService {
     }
   }
 
-  // Update username (email)
-  Future<void> updateUsername(String newEmail) async {
+  // Update username
+  Future<void> updateUsername(String newUsername) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final oldEmail = await getUsername();
-      
-      if (oldEmail != null) {
-        // Update email in Firebase
-        final user = _auth.currentUser;
-        if (user != null) {
-          await user.updateEmail(newEmail);
-          
-          // Update local storage
-          await prefs.setString(_usernameKey, newEmail);
-        }
-      }
+      await prefs.setString(_usernameKey, newUsername);
     } catch (e) {
       print('Update username error: $e');
     }
   }
 
-  // Check if email exists
-  Future<bool> usernameExists(String email) async {
+  // Check if username exists (locally)
+  Future<bool> usernameExists(String username) async {
     try {
-      final methods = await _auth.fetchSignInMethodsForEmail(email);
-      return methods.isNotEmpty;
+      final prefs = await SharedPreferences.getInstance();
+      final currentUsername = await getUsername();
+      return currentUsername == username;
     } catch (e) {
-      print('Check email exists error: $e');
+      print('Check username exists error: $e');
       return false;
     }
   }
 
   // Update password
-  Future<bool> updatePassword(String currentPassword, String newPassword) async {
+  Future<bool> updatePassword(
+      String currentPassword, String newPassword) async {
     try {
       final user = _auth.currentUser;
       if (user != null) {
         // Reauthenticate user before updating password
-        final email = await getUsername();
+        final email = user.email;
         if (email != null) {
           final credential = EmailAuthProvider.credential(
             email: email,
             password: currentPassword,
           );
-          
+
           await user.reauthenticateWithCredential(credential);
           await user.updatePassword(newPassword);
           return true;
@@ -177,4 +168,4 @@ class AuthService {
       return 'default';
     }
   }
-} 
+}

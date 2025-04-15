@@ -21,10 +21,7 @@ class DefaultFirebaseOptions {
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for android - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return android;
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
@@ -52,6 +49,14 @@ class DefaultFirebaseOptions {
     messagingSenderId: '145422957663',
     projectId: 'gym-buddy-v2',
     authDomain: 'gym-buddy-v2.firebaseapp.com',
+    storageBucket: 'gym-buddy-v2.firebasestorage.app',
+  );
+
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyDG-vjA476JsBEY7aSpiGoU09aqhg98bp4',
+    appId: '1:145422957663:android:82f7f6048f16626d85afea',
+    messagingSenderId: '145422957663',
+    projectId: 'gym-buddy-v2',
     storageBucket: 'gym-buddy-v2.firebasestorage.app',
   );
 

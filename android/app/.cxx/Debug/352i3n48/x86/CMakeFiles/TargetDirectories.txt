@@ -1,0 +1,2 @@
+/Users/alexsanna/development/FlutterGymApp/android/app/.cxx/Debug/352i3n48/x86/CMakeFiles/edit_cache.dir
+/Users/alexsanna/development/FlutterGymApp/android/app/.cxx/Debug/352i3n48/x86/CMakeFiles/rebuild_cache.dir

@@ -1,6 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:mobile_app1/firebase_options.dart';
+import 'package:GYMBUDDY/firebase_options.dart';
 import 'package:provider/provider.dart';
 import 'login_screen.dart';
 import 'auth_service.dart';
@@ -151,7 +151,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
                     ),
                     child: CircleAvatar(
                       radius: 30,
-                      backgroundImage: AssetImage('assets/IMG_6510.png'),
+                      backgroundImage: AssetImage('assets/PFP1.png'),
                     ),
                   ),
                 ],
@@ -958,8 +958,7 @@ class _ScreenFourState extends State<ScreenFour> {
                             ),
                             child: CircleAvatar(
                               radius: 35,
-                              backgroundImage:
-                                  AssetImage('assets/IMG_6510.png'),
+                              backgroundImage: AssetImage('assets/PFP1.png'),
                             ),
                           ),
                           SizedBox(width: 20),

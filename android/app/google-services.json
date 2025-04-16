@@ -7,6 +7,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:145422957663:android:fd76ce354fff623a85afea",
+        "android_client_info": {
+          "package_name": "com.alexsanna.gymbuddy"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB8yMH38afMhVWEe2UuFBucXdTDGlH2YFA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:145422957663:android:d78beacab72e485f85afea",
         "android_client_info": {
           "package_name": "com.example.mobile_app1"
